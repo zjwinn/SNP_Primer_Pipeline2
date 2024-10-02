@@ -38,6 +38,7 @@ from subprocess import call
 import getopt, sys, os, re
 from glob import glob
 import copy
+from shutil import which
 #########################
 ## input
 max_Tm = sys.argv[1] # max Tm, default 63, can be increased in case high GC region
@@ -50,18 +51,30 @@ raw.sort()
 
 iupac = {"R": "AG", "Y": "TC", "S": "GC", "W": "AT", "K": "TG", "M": "AC"}
 
-#from sys import platform
 def get_software_path(base_path):
-	if sys.platform.startswith('linux'): # linux
-		primer3_path = base_path + "/primer3_core"
-		muscle_path = base_path + "/muscle"
-	elif sys.platform == "win32" or sys.platform == "cygwin": # Windows...
-		primer3_path = base_path + "/primer3_core.exe"
-		muscle_path = base_path + "/muscle.exe"
-	elif sys.platform == "darwin": # MacOSX
-		primer3_path = base_path + "/primer3_core_darwin64"
-		muscle_path = base_path + "/muscle3.8.31_i86darwin64"
-	return primer3_path, muscle_path
+    # Check if muscle and primer3_core are in the system's PATH
+    primer3_path = which("primer3_core")
+    muscle_path = which("muscle")
+    
+    # If not found, fall back to the base_path location
+    if not primer3_path:
+        if sys.platform.startswith('linux'):  # Linux
+            primer3_path = base_path + "/primer3_core"
+        elif sys.platform == "win32" or sys.platform == "cygwin":  # Windows
+            primer3_path = base_path + "/primer3_core.exe"
+        elif sys.platform == "darwin":  # MacOSX
+            primer3_path = base_path + "/primer3_core_darwin64"
+    
+    if not muscle_path:
+        if sys.platform.startswith('linux'):  # Linux
+            muscle_path = base_path + "/muscle"
+        elif sys.platform == "win32" or sys.platform == "cygwin":  # Windows
+            muscle_path = base_path + "/muscle.exe"
+        elif sys.platform == "darwin":  # MacOSX
+            muscle_path = base_path + "/muscle3.8.31_i86darwin64"
+
+    return primer3_path, muscle_path
+
 
 # function to get reverse complement
 def ReverseComplement(seq):
@@ -422,7 +435,7 @@ def kasp(seqfile):
 	
 	# STEP 0: create alignment file and primer3output file
 	RawAlignFile = "alignment_raw_" + snpname + ".fa"
-	alignmentcmd = muscle_path + " -in " + seqfile2 + " -out " + RawAlignFile + " -quiet"
+	alignmentcmd = muscle_path + " -align " + seqfile2 + " -output " + RawAlignFile + " -quiet"
 	print(("Alignment command: ", alignmentcmd))
 	call(alignmentcmd, shell=True)
 	settings_common = "PRIMER_TASK=generic" + "\n" + \
